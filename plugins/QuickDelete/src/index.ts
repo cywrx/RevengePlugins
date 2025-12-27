@@ -11,7 +11,7 @@ export default {
     onLoad: () => {
         unpatch = registerMessageAction({
             name: "Quick Delete",
-            icon: getAssetIDByName("Trash") 
+            icon: getAssetIDByName("Trash"),
             predicate: (msg) => msg.author.id === getCurrentUser().id,
             onPress: (action, msg) => {
                 msgModule.deleteMessage(msg.channel_id, msg.id)
