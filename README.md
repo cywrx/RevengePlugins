@@ -1,7 +1,8 @@
-# Vendetta Plugins Template
-This repo contains a template for creating [Vendetta](https://github.com/vendetta-mod/Vendetta) plugins.
+# Quick Delete Made Just For My Ex
+**Best way to clean messages that u dont want 😔**
+
 
 # How to install?
-Paste a plugin URL into the Plugins page of Vendetta, following a basic format of:
+Paste the url with
 
-https://`YOUR_GITHUB_USERNAME`.github.io/`REPO_NAME`/`PLUGIN_NAME`
+https://cywrx.github.io/RevengePlugins/`PLUGIN_NAME`
