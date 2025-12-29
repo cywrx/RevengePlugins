@@ -6,23 +6,17 @@ export default function Settings() {
   const [val, setVal] = React.useState(storage.userIds?.join(",") ?? "");
 
   function applyValue() {
-    if (!val.trim()) return showToast("Enter at least one user ID");
-    const ids = val.split(",").map(i => i.trim()).filter(i => i);
-    storage.userIds = ids;
-    showToast(`Tracking ${ids.length} user${ids.length !== 1 ? "s" : ""}`);
-  }
-
-  function clearAll() {
-    setVal("");
-    storage.userIds = [];
-    showToast("Cleared all tracked users");
+    if (!val) return showToast("enter at least one user id")
+    const ids = val.split(",").map(i => i.trim()).filter(i => i)
+    storage.userIds = ids
+    showToast(`tracking ${ids.length} user${ids.length > 1 ? "s" : ""}`)
   }
 
   return (
     <RN.ScrollView style={{ flex: 1, padding: 16, backgroundColor: "#2f3136" }}>
       <RN.View style={{ marginBottom: 12 }}>
         <RN.TextInput
-          placeholder="User IDs (858031702927736874, ...)"
+          placeholder="Enter user IDs separated by commas"
           placeholderTextColor="#ccc"
           value={val}
           onChangeText={setVal}
@@ -45,7 +39,7 @@ export default function Settings() {
           paddingVertical: 12,
           borderRadius: 8,
           alignItems: "center",
-          marginBottom: 8,
+          marginBottom: 16,
         }}
       >
         <RN.Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
@@ -53,34 +47,17 @@ export default function Settings() {
         </RN.Text>
       </RN.TouchableOpacity>
 
-      <RN.TouchableOpacity
-        onPress={clearAll}
-        style={{
-          paddingVertical: 8,
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <RN.Text style={{ color: "#ff4747", fontSize: 14 }}>
-          Clear All
+      <RN.View>
+        <RN.Text style={{ color: "#fff", fontSize: 16, marginBottom: 6 }}>
+          💡 instructions
         </RN.Text>
-      </RN.TouchableOpacity>
-
-      <RN.View style={{ backgroundColor: "#202225", padding: 12, borderRadius: 8 }}>
-        <RN.Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
-          💡 Instructions
+        <RN.Text style={{ color: "#fff", marginBottom: 4 }}>
+          - separate multiple user IDs with commas
         </RN.Text>
-        <RN.Text style={{ color: "#bbb", marginBottom: 6 }}>
-          - To add multiple users, separate IDs with a comma.
-        </RN.Text>
-        <RN.Text style={{ color: "#7289da", fontStyle: "italic", marginBottom: 12 }}>
-          Example: 12345678, 98765432
-        </RN.Text>
-        <RN.Text style={{ color: "#bbb" }}>
-          - You will be notified once per minute when a listed user sends a message.
+        <RN.Text style={{ color: "#fff", marginBottom: 4 }}>
+          - plugin will notify you when any listed user comes online or messages
         </RN.Text>
       </RN.View>
     </RN.ScrollView>
-  );
+  )
 }
-
