@@ -5,10 +5,11 @@
         {
             "name": "cywrx",
             "id": "858031702927736874"
-        },
+        }
     ],
-    "main": "src/index.ts",
+    "main": "index.ts",
     "vendetta": {
         "icon": "ic_person_status"
     }
 }
+
