@@ -1,6 +1,6 @@
 {
     "name": "UserNotif",
-    "description": "A plugin to notify you when a user is online/texting",
+    "description": "Get notified when a User is texting. (mutual server required)",
     "authors": [
         {
             "name": "cywrx",
