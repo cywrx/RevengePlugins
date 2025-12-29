@@ -1,32 +1,24 @@
 import { findByProps } from "@vendetta/metro";
-import { registerMessageAction } from "@vendetta/ui/message";
-import { getAssetIDByName } from "@vendetta/ui/assets";
-import { showToast } from "@vendetta/ui/toasts";
-const msgModule = findByProps("deleteMessage", "dismissAutomatedMessage");
-const { getCurrentUser } = findByProps("getCurrentUser");
+import { instead } from "@vendetta/patcher";
 
-let unpatch;
+const Alerts = findByProps("show", "openLazy");
+let stopPatch: () => void;
 
 export default {
     onLoad: () => {
-        unpatch = registerMessageAction({
-            name: "Quick Delete",
-            icon: getAssetIDByName("Trash"),
-            predicate: (msg) => msg.author.id === getCurrentUser().id,
-            onPress: (action, msg) => {
-                msgModule.deleteMessage(msg.channel_id, msg.id)
-                    .then(() => {
-                        showToast("Deleted", getAssetIDByName("Check"));
-                    })
-                    .catch((e) => {
-                        console.error("QuickDelete failed:", e);
-                        showToast("Error deleting message", getAssetIDByName("Small"));
-                    });
+        stopPatch = instead("show", Alerts, (args, original) => {
+            const [props] = args;
+            
+            const isDeletePopup = props?.onConfirm && 
+                (props?.title?.toLowerCase().includes("delete") || 
+                 props?.content?.toLowerCase().includes("delete"));
+            if (isDeletePopup) {
+                return props.onConfirm();
             }
+            return original.apply(Alerts, args);
         });
     },
-
     onUnload: () => {
-        if (unpatch) unpatch();
+        if (stopPatch) stopPatch();
     }
 };
