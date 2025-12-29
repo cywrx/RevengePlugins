@@ -1,6 +1,6 @@
 {
-    "name": "Quick Delete",
-    "description": "A plugin to delete your message quickly.",
+    "name": "UserNotif",
+    "description": "A plugin to notify you when a user is online/texting",
     "authors": [
         {
             "name": "cywrx",
