@@ -55,7 +55,7 @@ export default function Settings() {
           - separate multiple user IDs with commas
         </RN.Text>
         <RN.Text style={{ color: "#fff", marginBottom: 4 }}>
-          - plugin will notify you when any listed user messages
+          - plugin will notify you when any listed user comes online or messages
         </RN.Text>
       </RN.View>
     </RN.ScrollView>
