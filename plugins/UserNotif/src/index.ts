@@ -1,5 +1,4 @@
 import { findByProps } from "@vendetta/metro";
-import { after } from "@vendetta/patcher";
 import { showToast } from "@vendetta/ui/toasts";
 import { storage } from "@vendetta/plugin";
 import Settings from "./Settings";
@@ -10,8 +9,8 @@ const PresenceStore = findByProps("getStatus");
 const getTargetIds = () => storage.userIds ?? [];
 
 const lastStatuses: Record<string, string | undefined> = {};
-let unpatchPresence: (() => void) | null = null;
-let unsubscribeMessage: (() => void) | null = null;
+
+let unsubscribe: (() => void) | null = null;
 
 function notify(text: string) {
   showToast(text);
@@ -23,41 +22,42 @@ export default {
       lastStatuses[id] = PresenceStore.getStatus(id);
     }
 
-    unpatchPresence = after(
-      "dispatch",
-      FluxDispatcher,
-      ([payload]) => {
-        if (payload?.type !== "PRESENCE_UPDATE") return;
+    const presenceHandler = (payload: any) => {
+      const userId = payload.user?.id;
+      const targetIds = getTargetIds();
+      
+      if (!targetIds.includes(userId)) return;
 
-        const userId = payload.user?.id;
-        if (!getTargetIds().includes(userId)) return;
+      const newStatus = payload.status || PresenceStore.getStatus(userId);
 
-        const newStatus = payload.status;
-        if (lastStatuses[userId] !== newStatus) {
-          lastStatuses[userId] = newStatus;
-          notify(`User ${userId} is now ${newStatus}`);
-        }
+      if (lastStatuses[userId] !== newStatus) {
+        lastStatuses[userId] = newStatus;
+        notify(`User ${userId} is now ${newStatus}`);
       }
-    );
+    };
 
     const messageHandler = (payload: any) => {
       if (payload?.type !== "MESSAGE_CREATE") return;
 
       const authorId = payload.message?.author?.id;
-      if (!getTargetIds().includes(authorId)) return;
-
-      notify(`User ${authorId} sent a message`);
+      if (getTargetIds().includes(authorId)) {
+        notify(`User ${authorId} sent a message`);
+      }
     };
-
+    
+    FluxDispatcher.subscribe("PRESENCE_UPDATE", presenceHandler);
     FluxDispatcher.subscribe("MESSAGE_CREATE", messageHandler);
-    unsubscribeMessage = () =>
+
+    unsubscribe = () => {
+      FluxDispatcher.unsubscribe("PRESENCE_UPDATE", presenceHandler);
       FluxDispatcher.unsubscribe("MESSAGE_CREATE", messageHandler);
+    };
   },
 
   onUnload() {
-    unpatchPresence?.();
-    unsubscribeMessage?.();
+    unsubscribe?.();
   },
-  
+
   settings: Settings,
 };
+
