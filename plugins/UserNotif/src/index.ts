@@ -1,44 +1,64 @@
 import { findByProps } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
 import { showToast } from "@vendetta/ui/toasts";
-import { storage } from "@vendetta/plugin";
-import Settings from "./Settings";
 
 const FluxDispatcher = findByProps("dispatch", "subscribe");
-const UserStore = findByProps("getUser");
-const ChannelStore = findByProps("getChannel");
+const PresenceStore = findByProps("getStatus");
 
-const getTargetIds = () => storage.userIds ?? [];
-const cooldowns: Record<string, number> = {};
-let unpatch: () => void;
+const TARGET_USER_IDS = [
+  "USER_ID_1",
+  "USER_ID_2",
+  "USER_ID_3",
+];
+
+const lastStatuses: Record<string, string | undefined> = {};
+
+let unpatchPresence: (() => void) | null = null;
+let unsubscribeMessage: (() => void) | null = null;
+
+function notify(text: string) {
+  showToast(text);
+}
 
 export default {
   onLoad() {
-    unpatch = after("dispatch", FluxDispatcher, ([payload]) => {
-      if (payload.type !== "MESSAGE_CREATE") return;
+    for (const id of TARGET_USER_IDS) {
+      lastStatuses[id] = PresenceStore.getStatus(id);
+    }
 
-      const targetIds = getTargetIds();
-      const authorId = payload.message?.author?.id;
+    unpatchPresence = after(
+      "dispatch",
+      FluxDispatcher,
+      ([payload]) => {
+        if (payload?.type !== "PRESENCE_UPDATE") return;
 
-      if (targetIds.includes(authorId)) {
-        const now = Date.now();
-        
-        if (cooldowns[authorId] && (now - cooldowns[authorId] < 60000)) {
-          return;
+        const userId = payload.user?.id;
+        if (!TARGET_USER_IDS.includes(userId)) return;
+
+        const newStatus = payload.status;
+        if (lastStatuses[userId] !== newStatus) {
+          lastStatuses[userId] = newStatus;
+          notify(`user ${userId} is now ${newStatus}`);
         }
-
-        const channel = ChannelStore.getChannel(payload.message.channel_id);
-        const channelName = channel?.name || "DMs";
-        const name = UserStore.getUser(authorId)?.globalName || authorId;
-
-        cooldowns[authorId] = now;
-
-        showToast(`${name} has texted a message in ${channelName}`);
       }
-    });
+    );
+
+    const messageHandler = (payload: any) => {
+      if (payload?.type !== "MESSAGE_CREATE") return;
+
+      const authorId = payload.message?.author?.id;
+      if (!TARGET_USER_IDS.includes(authorId)) return;
+
+      notify(`user ${authorId} sent a message`);
+    };
+
+    FluxDispatcher.subscribe("MESSAGE_CREATE", messageHandler);
+    unsubscribeMessage = () =>
+      FluxDispatcher.unsubscribe("MESSAGE_CREATE", messageHandler);
   },
+
   onUnload() {
-    unpatch?.();
+    unpatchPresence?.();
+    unsubscribeMessage?.();
   },
-  settings: Settings,
 };
