@@ -1,76 +1,99 @@
-import { React, ReactNative as RN } from "@vendetta/metro/common";
-import { storage } from "@vendetta/plugin";
+import { findByProps } from "@vendetta/metro";
+import { after } from "@vendetta/patcher";
 import { showToast } from "@vendetta/ui/toasts";
+import { storage } from "@vendetta/plugin";
+import Settings from "./settings";
 
-export default function Settings() {
-  const [ids, setIds] = React.useState(storage.userIds.join(","));
-  const [trackFriends, setTrackFriends] = React.useState(storage.trackFriends);
+const FluxDispatcher = findByProps("dispatch", "subscribe");
+const PresenceStore = findByProps("getStatus");
+const RelationshipStore = findByProps("getFriendIDs");
+const ChannelStore = findByProps("getChannel");
+const GuildStore = findByProps("getGuild");
+const UserStore = findByProps("getUser");
 
-  function apply() {
-    storage.userIds = ids.split(",").map(i => i.trim()).filter(Boolean);
-    storage.trackFriends = trackFriends;
-    showToast("saved");
+if (storage.trackFriends === undefined) storage.trackFriends = true;
+if (!storage.userIds) storage.userIds = [];
+
+const lastStatuses: Record<string, string | undefined> = {};
+
+const getTrackedIds = () => {
+  const ids = new Set<string>();
+  if (storage.trackFriends) {
+    for (const id of RelationshipStore.getFriendIDs()) ids.add(id);
   }
+  for (const id of storage.userIds) ids.add(id);
+  return [...ids];
+};
 
-  return (
-    <RN.ScrollView style={{ flex: 1, backgroundColor: "#1e1f22", padding: 20 }}>
-      <RN.View style={{
-        backgroundColor: "#2b2d31",
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 16
-      }}>
-        <RN.View style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}>
-          <RN.Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
-            Track Friends
-          </RN.Text>
-          <RN.Switch value={trackFriends} onValueChange={setTrackFriends} />
-        </RN.View>
-      </RN.View>
+const getName = (id: string) => UserStore.getUser(id)?.username ?? id;
 
-      <RN.View style={{
-        backgroundColor: "#2b2d31",
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 20
-      }}>
-        <RN.Text style={{ color: "#fff", fontSize: 15, marginBottom: 8 }}>
-          Specific User IDs
-        </RN.Text>
-        <RN.TextInput
-          value={ids}
-          onChangeText={setIds}
-          placeholder="123, 456, 789"
-          placeholderTextColor="#888"
-          style={{
-            backgroundColor: "#1e1f22",
-            borderRadius: 8,
-            padding: 12,
-            color: "#fff",
-            fontSize: 14
-          }}
-        />
-      </RN.View>
+let unpatchPresence: (() => void) | null = null;
+let unsubMessage: (() => void) | null = null;
+let unsubTyping: (() => void) | null = null;
 
-      <RN.TouchableOpacity
-        onPress={apply}
-        style={{
-          backgroundColor: "#5865f2",
-          paddingVertical: 14,
-          borderRadius: 10,
-          alignItems: "center"
-        }}
-      >
-        <RN.Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-          Apply
-        </RN.Text>
-      </RN.TouchableOpacity>
-    </RN.ScrollView>
-  );
-}
+export default {
+  onLoad() {
+    for (const id of getTrackedIds()) {
+      lastStatuses[id] = PresenceStore.getStatus(id);
+    }
 
-    
+    unpatchPresence = after("dispatch", FluxDispatcher, ([p]) => {
+      if (p?.type !== "PRESENCE_UPDATE") return;
+      const id = p.user?.id;
+      if (!getTrackedIds().includes(id)) return;
+      if (lastStatuses[id] !== p.status) {
+        lastStatuses[id] = p.status;
+        showToast(`${getName(id)} is now ${p.status}`);
+      }
+    });
+
+    const onMessage = (p: any) => {
+      const m = p?.message;
+      const id = m?.author?.id;
+      if (!getTrackedIds().includes(id)) return;
+      const c = ChannelStore.getChannel(m.channel_id);
+      if (!c) return;
+
+      if (c.guild_id) {
+        const g = GuildStore.getGuild(c.guild_id);
+        showToast(`${getName(id)} messaged in ${g?.name} #${c.name}`);
+      } else if (c.type === 3) {
+        showToast(`${getName(id)} messaged in group`);
+      } else {
+        showToast(`${getName(id)} messaged in DM`);
+      }
+    };
+
+    const onTyping = (p: any) => {
+      const id = p?.userId;
+      if (!getTrackedIds().includes(id)) return;
+      const c = ChannelStore.getChannel(p.channelId);
+      if (!c) return;
+
+      if (c.guild_id) {
+        const g = GuildStore.getGuild(c.guild_id);
+        showToast(`${getName(id)} typing in ${g?.name} #${c.name}`);
+      } else if (c.type === 3) {
+        showToast(`${getName(id)} typing in group`);
+      } else {
+        showToast(`${getName(id)} typing in DM`);
+      }
+    };
+
+    FluxDispatcher.subscribe("MESSAGE_CREATE", onMessage);
+    FluxDispatcher.subscribe("TYPING_START", onTyping);
+
+    unsubMessage = () => FluxDispatcher.unsubscribe("MESSAGE_CREATE", onMessage);
+    unsubTyping = () => FluxDispatcher.unsubscribe("TYPING_START", onTyping);
+  },
+
+  onUnload() {
+    unpatchPresence?.();
+    unsubMessage?.();
+    unsubTyping?.();
+  },
+
+  settings: Settings,
+};
+
+      
