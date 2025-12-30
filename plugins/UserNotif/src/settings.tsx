@@ -3,61 +3,74 @@ import { storage } from "@vendetta/plugin";
 import { showToast } from "@vendetta/ui/toasts";
 
 export default function Settings() {
-  const [val, setVal] = React.useState(storage.userIds?.join(",") ?? "");
+  const [ids, setIds] = React.useState(storage.userIds.join(","));
+  const [trackFriends, setTrackFriends] = React.useState(storage.trackFriends);
 
-  function applyValue() {
-    if (!val) return showToast("enter at least one user id")
-    const ids = val.split(",").map(i => i.trim()).filter(i => i)
-    storage.userIds = ids
-    showToast(`tracking ${ids.length} user${ids.length > 1 ? "s" : ""}`)
+  function apply() {
+    storage.userIds = ids.split(",").map(i => i.trim()).filter(Boolean);
+    storage.trackFriends = trackFriends;
+    showToast("saved");
   }
 
   return (
-    <RN.ScrollView style={{ flex: 1, padding: 16, backgroundColor: "#2f3136" }}>
-      <RN.View style={{ marginBottom: 12 }}>
+    <RN.ScrollView style={{ flex: 1, backgroundColor: "#1e1f22", padding: 20 }}>
+      <RN.View style={{
+        backgroundColor: "#2b2d31",
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 16
+      }}>
+        <RN.View style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <RN.Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
+            Track Friends
+          </RN.Text>
+          <RN.Switch value={trackFriends} onValueChange={setTrackFriends} />
+        </RN.View>
+      </RN.View>
+
+      <RN.View style={{
+        backgroundColor: "#2b2d31",
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 20
+      }}>
+        <RN.Text style={{ color: "#fff", fontSize: 15, marginBottom: 8 }}>
+          Specific User IDs
+        </RN.Text>
         <RN.TextInput
-          placeholder="Enter user IDs separated by commas"
-          placeholderTextColor="#ccc"
-          value={val}
-          onChangeText={setVal}
+          value={ids}
+          onChangeText={setIds}
+          placeholder="123, 456, 789"
+          placeholderTextColor="#888"
           style={{
-            borderWidth: 1,
-            borderColor: "#7289da",
-            padding: 10,
+            backgroundColor: "#1e1f22",
             borderRadius: 8,
+            padding: 12,
             color: "#fff",
-            fontSize: 16,
-            backgroundColor: "#202225",
+            fontSize: 14
           }}
         />
       </RN.View>
 
       <RN.TouchableOpacity
-        onPress={applyValue}
+        onPress={apply}
         style={{
-          backgroundColor: "#7289da",
-          paddingVertical: 12,
-          borderRadius: 8,
-          alignItems: "center",
-          marginBottom: 16,
+          backgroundColor: "#5865f2",
+          paddingVertical: 14,
+          borderRadius: 10,
+          alignItems: "center"
         }}
       >
-        <RN.Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+        <RN.Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
           Apply
         </RN.Text>
       </RN.TouchableOpacity>
-
-      <RN.View>
-        <RN.Text style={{ color: "#fff", fontSize: 16, marginBottom: 6 }}>
-          💡 instructions
-        </RN.Text>
-        <RN.Text style={{ color: "#fff", marginBottom: 4 }}>
-          - separate multiple user IDs with commas
-        </RN.Text>
-        <RN.Text style={{ color: "#fff", marginBottom: 4 }}>
-          - plugin will notify you when any listed user comes online or messages
-        </RN.Text>
-      </RN.View>
     </RN.ScrollView>
-  )
+  );
 }
+
+
