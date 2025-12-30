@@ -1,6 +1,6 @@
 {
   "name": "UserNotif",
-  "description": "Get notified when a User is texting. (mutual server required)",
+  "description": "Get notified when a User is texting, mutual server required. (big thanks coder.gg)",
   "authors": [
     {
       "name": "cywrx",
