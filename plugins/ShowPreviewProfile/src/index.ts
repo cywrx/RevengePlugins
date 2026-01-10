@@ -4,15 +4,15 @@ import { React, NavigationNative } from "@vendetta/metro/common";
 
 const UserStore = findByProps("getCurrentUser");
 const Button = findByProps("Button");
-const ProfileEditor = findByProps("UserProfileEditorHeader") || findByProps("UserProfileEditor");
+const Editor = findByProps("UserProfileEditor") || findByProps("UserProfileSettingsEditor");
 
 let unpatch: () => void;
 
 export default {
   onLoad() {
-    if (!ProfileEditor) return;
+    if (!Editor) return;
 
-    unpatch = after("default", ProfileEditor, (_, res) => {
+    unpatch = after("default", Editor, (_, res) => {
       const navigation = NavigationNative.useNavigation();
       const user = UserStore.getCurrentUser();
 
@@ -23,18 +23,34 @@ export default {
         onPress: () => {
           navigation.navigate("UserProfile", {
             userId: user.id,
-            fromEditor: true
           });
         },
-        style: { margin: 10 }
+        style: { 
+          marginHorizontal: 16, 
+          marginVertical: 8,
+          borderRadius: 8
+        }
       });
 
+
       try {
-        const children = res.props?.children || res.props?.children?.props?.children;
-        if (Array.isArray(children)) {
-          children.unshift(previewButton);
+        const blocks = res?.props?.children?.props?.blocks || res?.props?.blocks;
+        if (Array.isArray(blocks)) {
+
+          blocks.unshift({
+            type: "CUSTOM_BUTTON",
+            render: () => previewButton
+          });
+        } else {
+          
+          const children = res?.props?.children?.props?.children || res?.props?.children;
+          if (Array.isArray(children)) {
+            children.unshift(previewButton);
+          }
         }
       } catch (e) {}
+
+      return res;
     });
   },
   onUnload() {
