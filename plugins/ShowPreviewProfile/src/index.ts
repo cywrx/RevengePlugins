@@ -1,37 +1,40 @@
-import { findByProps, findByName } from "@vendetta/metro";
+import { findByProps } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
-import { React, ReactNative as RN, NavigationNative } from "@vendetta/metro/common";
+import { React, NavigationNative } from "@vendetta/metro/common";
 
 const UserStore = findByProps("getCurrentUser");
-const UserProfileRenderer = findByName("UserProfileEditor", false) || findByName("UserProfileSettings", false);
-const Button = findByProps("Button").Button;
+const Button = findByProps("Button");
+const ProfileEditor = findByProps("UserProfileEditorHeader") || findByProps("UserProfileEditor");
 
 let unpatch: () => void;
 
 export default {
   onLoad() {
-    unpatch = after("default", UserProfileRenderer, (_, res) => {
-      const currentUser = UserStore.getCurrentUser();
+    if (!ProfileEditor) return;
+
+    unpatch = after("default", ProfileEditor, (_, res) => {
       const navigation = NavigationNative.useNavigation();
+      const user = UserStore.getCurrentUser();
 
-      if (!res?.props?.children) return;
-
-      const previewButton = React.createElement(Button, {
-        text: "Preview Profile",
+      const previewButton = React.createElement(Button.default || Button, {
+        text: "Preview as Stranger",
         size: "small",
         color: "brand",
         onPress: () => {
-          navigation.push("UserProfile", {
-            userId: currentUser.id,
+          navigation.navigate("UserProfile", {
+            userId: user.id,
+            fromEditor: true
           });
         },
-        style: { marginVertical: 10 }
+        style: { margin: 10 }
       });
 
-      const list = res.props.children.props?.children || res.props.children;
-      if (Array.isArray(list)) {
-        list.unshift(previewButton);
-      }
+      try {
+        const children = res.props?.children || res.props?.children?.props?.children;
+        if (Array.isArray(children)) {
+          children.unshift(previewButton);
+        }
+      } catch (e) {}
     });
   },
   onUnload() {
