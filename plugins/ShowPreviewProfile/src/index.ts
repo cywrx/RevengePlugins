@@ -1,23 +1,25 @@
-import { findByProps } from "@vendetta/metro";
+import { findByProps, findByName } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
+import { NavigationNative } from "@vendetta/metro/common";
+import { showToast } from "@vendetta/ui/toasts";
 
-const ProfileCustomizationUtils = findByProps("canUsePremiumProfileCustomization");
+const UserStore = findByProps("getCurrentUser");
+const UserProfileRenderer = findByName("UserProfile", false);
 
-let unpatch: (() => void) | null = null;
+let unpatch: () => void;
 
 export default {
   onLoad() {
-    
-    if (ProfileCustomizationUtils) {
-      unpatch = after(
-        "canUsePremiumProfileCustomization",
-        ProfileCustomizationUtils,
-        () => true
-      );
-    }
+    unpatch = after("default", UserProfileRenderer, (args, res) => {
+      
+      const currentUser = UserStore.getCurrentUser();
+
+      if (!res?.props?.children) return;
+      
+    });
   },
 
   onUnload() {
-    unpatch?.();
+    if (unpatch) unpatch();
   },
 };
